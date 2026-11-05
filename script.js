@@ -184,7 +184,8 @@ function getCloudDataAndAdd(callback) {
         if (!db.warnings) db.warnings = [];
         if (!db.programs) db.programs = [];
         callback(db);
-    });
+    })
+    .catch(error => console.error("Błąd komunikacji z chmurą:", error));
 }
 
 function addHomeCard() {
@@ -230,7 +231,7 @@ function addProgramItem() {
     const fileInput = document.getElementById('prog-file');
     
     if (name && fileInput.files.length > 0) {
-        const file = fileInput.files;
+        const file = fileInput.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
             getCloudDataAndAdd((db) => {
@@ -240,7 +241,7 @@ function addProgramItem() {
                     name: name + extension, 
                     fileData: e.target.result 
                 });
-                saveToFirebase(db); // Używa zapisu do chmury przez bazy powiązane
+                saveToCloud(db);
                 alert('Plik został wgrany do systemu!');
                 document.getElementById('prog-name').value = '';
                 fileInput.value = '';
