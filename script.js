@@ -1,8 +1,10 @@
+// DARMOWA BAZA DANYCH ONLINE DLA CYBERSHIELD (W 100% AUTOMATYCZNA)
+const BIN_ID = "055683b86267962bca57";
+const CLOUD_URL = `https://npoint.io{BIN_ID}`;
+
 const ADM_USER = "Ignacyadm";
 const ADM_PASS = "Password123@$-+";
 let isAdminLoggedIn = false;
-
-// Funkcja pobierająca bazę danych bezpośrednio z Twojego pliku na GitHubie
 let db = { home: [], warnings: [], programs: [] };
 
 window.addEventListener('hashchange', () => {
@@ -10,21 +12,29 @@ window.addEventListener('hashchange', () => {
 });
 window.addEventListener('load', () => {
     if (window.location.hash === '#/admin') switchPage('admin');
-    fetchDataFromGitHub();
+    loadFromCloud();
 });
 
-function fetchDataFromGitHub() {
-    fetch('dane.json')
-        .then(response => response.json())
+function loadFromCloud() {
+    fetch(CLOUD_URL)
+        .then(res => res.json())
         .then(data => {
-            db = data;
+            db = data || { home: [], warnings: [], programs: [] };
             renderAll();
         })
-        .catch(err => {
-            console.log("Ładowanie z pamięci lokalnej (brak pliku dane.json)");
-            db = JSON.parse(localStorage.getItem('cs_db')) || { home: [], warnings: [], programs: [] };
-            renderAll();
-        });
+        .catch(err => console.error("Błąd pobierania danych:", err));
+}
+
+function saveToCloud() {
+    fetch(CLOUD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(db)
+    })
+    .then(() => {
+        loadFromCloud();
+    })
+    .catch(err => console.error("Błąd zapisu w chmurze:", err));
 }
 
 function switchPage(p) {
@@ -48,13 +58,15 @@ function switchAdminTab(t) {
 }
 
 function renderAll() {
+    const showDeleteBtn = isAdminLoggedIn;
+
     const h = document.getElementById('home-content');
     if (h) {
         h.innerHTML = (db.home || []).map((x, i) => `
-            <div class="card" onclick="openModal('${x.title}', '${x.text}')">
-                <img src="${x.cover}">
-                <h3>${x.title}</h3>
-                ${isAdminLoggedIn ? `<button onclick="event.stopPropagation(); del('home', ${i})">Usuń</button>` : ''}
+            <div class="card" onclick="openModal('${x.title ? x.title.replace(/'/g, "\\'") : ''}', '${x.text ? x.text.replace(/'/g, "\\'") : ''}')">
+                <img src="${x.cover || ''}">
+                <h3>${x.title || ''}</h3>
+                ${showDeleteBtn ? `<button onclick="event.stopPropagation(); del('home', ${i})">❌ Usuń</button>` : ''}
             </div>
         `).join('');
     }
@@ -62,10 +74,10 @@ function renderAll() {
     const w = document.getElementById('warnings-content');
     if (w) {
         w.innerHTML = (db.warnings || []).map((x, i) => `
-            <div class="card" onclick="openModal('${x.title}', '${x.text}')">
-                <img src="${x.cover}">
-                <h3>${x.title}</h3>
-                ${isAdminLoggedIn ? `<button onclick="event.stopPropagation(); del('warnings', ${i})">Usuń</button>` : ''}
+            <div class="card" onclick="openModal('${x.title ? x.title.replace(/'/g, "\\'") : ''}', '${x.text ? x.text.replace(/'/g, "\\'") : ''}')">
+                <img src="${x.cover || ''}">
+                <h3>${x.title || ''}</h3>
+                ${showDeleteBtn ? `<button onclick="event.stopPropagation(); del('warnings', ${i})">❌ Usuń</button>` : ''}
             </div>
         `).join('');
     }
@@ -74,8 +86,8 @@ function renderAll() {
     if (p) {
         p.innerHTML = (db.programs || []).map((x, i) => `
             <div>
-                <a href="${x.file}" download="${x.name}" class="download-link">💾 Pobierz: ${x.name}</a>
-                ${isAdminLoggedIn ? `<button onclick="del('programs', ${i})">Usuń</button>` : ''}
+                <a href="${x.file || '#'}" download="${x.name || 'plik'}" class="download-link">💾 Pobierz: ${x.name || 'plik'}</a>
+                ${showDeleteBtn ? `<button onclick="event.stopPropagation(); del('programs', ${i})">❌ Usuń</button>` : ''}
             </div>
         `).join('');
     }
@@ -83,46 +95,66 @@ function renderAll() {
 
 function addHomeCard() {
     const title = document.getElementById('home-title').value;
-    const cover = document.getElementById('home-cover').value;
+    let cover = document.getElementById('home-cover').value;
     const text = document.getElementById('home-text').value;
-    db.home.push({ title, cover, text });
-    showExportData();
+    
+    cover = cover.replace(/\\/g, ''); // Czyszczenie linku z błędnych ukośników czatu
+
+    if(title && text) {
+        if(!db.home) db.home = [];
+        db.home.push({ title, cover, text });
+        saveToCloud();
+        alert('Dodano pomyślnie do chmury!');
+        document.getElementById('home-title').value = '';
+        document.getElementById('home-cover').value = '';
+        document.getElementById('home-text').value = '';
+    }
 }
 
 function addWarningCard() {
     const title = document.getElementById('warn-title').value;
-    const cover = document.getElementById('warn-cover').value;
+    let cover = document.getElementById('warn-cover').value;
     const text = document.getElementById('warn-text').value;
-    db.warnings.push({ title, cover, text });
-    showExportData();
+    
+    cover = cover.replace(/\\/g, '');
+
+    if(title && text) {
+        if(!db.warnings) db.warnings = [];
+        db.warnings.push({ title, cover, text });
+        saveToCloud();
+        alert('Dodano pomyślnie do chmury!');
+        document.getElementById('warn-title').value = '';
+        document.getElementById('warn-cover').value = '';
+        document.getElementById('warn-text').value = '';
+    }
 }
 
 function addProgramItem() {
     const name = document.getElementById('prog-name').value;
-    const fileInput = document.getElementById('prog-file').files[0];
-    if (fileInput) {
+    const fileInput = document.getElementById('prog-file').files;
+    
+    if (name && fileInput && fileInput.length > 0) {
+        const file = fileInput[0];
         const r = new FileReader();
         r.onload = function(e) {
-            db.programs.push({ name, file: e.target.result });
-            showExportData();
+            if(!db.programs) db.programs = [];
+            db.programs.push({ name: name, file: e.target.result });
+            saveToCloud();
+            alert('Program wgrany pomyślnie!');
+            document.getElementById('prog-name').value = '';
+            document.getElementById('prog-file').value = '';
         };
-        r.readAsDataURL(fileInput);
+        r.readAsDataURL(file);
+    } else {
+        alert('Wpisz nazwę i wybierz plik!');
     }
 }
 
 function del(cat, i) {
-    db[cat].splice(i, 1);
-    showExportData();
-}
-
-// Ta funkcja wygeneruje gotowy kod do wklejenia na GitHuba
-function showExportData() {
-    renderAll();
-    const finalJson = JSON.stringify(db, null, 2);
-    
-    // Tworzy okienko z kodem, który kopiujesz i wklejasz do pliku dane.json na GitHubie
-    const promptWindow = window.open("", "_blank");
-    promptWindow.document.write("<h3>ZAPISANO W PRZEGLĄDARCE!</h3><p>Aby posty zapisały się na stałe i były widoczne na telefonie, skopiuj poniższy tekst i wklej go do swojego pliku <b>dane.json</b> na GitHubie:</p><textarea style='width:100%;height:300px;'>" + finalJson + "</textarea>");
+    if(confirm("Usunąć ten element na stałe?")) {
+        db[cat].splice(i, 1);
+        saveToCloud();
+    }
 }
 
 function openModal(t, b) {
