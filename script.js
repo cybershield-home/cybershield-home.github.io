@@ -1,7 +1,3 @@
-// DARMOWA BAZA DANYCH ONLINE DLA CYBERSHIELD (Działa 24/7 bez konta Google)
-const CLOUD_URL = "https://jsonbin.io";
-const MASTER_KEY = "$2a$10$7vH8b6gVvJ8Y6tO6YFqNze6zH1.8Ld9B3yA4C3f5E6g7h8i9j0k1l"; // Klucz dostępu do chmury
-
 // Dane autoryzacyjne administratora Twojej strony
 const ADM_USER = "Ignacyadm";
 const ADM_PASS = "Password123@$-+";
@@ -13,7 +9,7 @@ let isAdminLoggedIn = false;
 window.addEventListener('hashchange', checkUrlRoute);
 window.addEventListener('load', () => {
     checkUrlRoute();
-    loadStoredData(); // Pobieranie danych z chmury przy uruchomieniu strony
+    loadStoredData();
 });
 
 function checkUrlRoute() {
@@ -63,65 +59,104 @@ function switchAdminTab(tabId) {
     document.getElementById(`adm-tab-${tabId}`).classList.add('active-tab');
 }
 
-// Pobieranie danych z niezależnej chmury i renderowanie strony
+// Pobieranie danych z lokalnej pamięci
+let database = { home: [], warnings: [], programs: [] };
+
+if(localStorage.getItem('cybershield_local_db')) {
+    database = JSON.parse(localStorage.getItem('cybershield_local_db'));
+}
+
+function saveData() {
+    localStorage.setItem('cybershield_local_db', JSON.stringify(database));
+    loadStoredData();
+    showBackupData();
+}
+
+function showBackupData() {
+    const backupText = JSON.stringify(database, null, 2);
+    alert("ZAPISANO POMYŚLNIE!\n\nSkopiuj ten tekst i wklej go do pliku 'dane.json' na GitHubie, aby działał też na innych urządzeniach:\n\n" + backupText);
+}
+
+// Dynamiczne renderowanie elementów na podstronach
 function loadStoredData() {
     const showDeleteBtn = isAdminLoggedIn;
 
-    fetch(CLOUD_URL, {
-        method: 'GET',
-        headers: {
-            'X-Master-Key': MASTER_KEY
+    // 1. Renderowanie Strony Głównej
+    const homeCont = document.getElementById('home-content');
+    if (homeCont) {
+        homeCont.innerHTML = '';
+        if (database.home && database.home.length > 0) {
+            database.home.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => openModal(item.title, item.text);
+                
+                let imgUrl = item.cover || 'https://placeholder.com';
+                
+                // Bezpieczne wstrzykiwanie czystego tekstu bez psucia struktury HTML
+                const imgNode = document.createElement('img');
+                imgNode.src = imgUrl;
+                imgNode.alt = "okładka";
+                
+                const titleNode = document.createElement('h3');
+                titleNode.innerText = item.title;
+                
+                card.appendChild(imgNode);
+                card.appendChild(titleNode);
+                
+                if (showDeleteBtn) {
+                    const btn = document.createElement('button');
+                    btn.className = 'delete-btn';
+                    btn.innerText = '❌ Usuń kafelek';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteItem('home', index);
+                    };
+                    card.appendChild(btn);
+                }
+                homeCont.appendChild(card);
+            });
+        } else {
+            homeCont.innerHTML = `<p class="empty-msg">Brak wiadomości na stronie głównej.</p>`;
         }
-    })
-    .then(response => response.json())
-    .then(resData => {
-        let database = resData.record || { home: [], warnings: [], programs: [] };
-        if (!database.home) database.home = [];
-        if (!database.warnings) database.warnings = [];
-        if (!database.programs) database.programs = [];
-
-        // 1. Renderowanie Strony Głównej
-        const homeCont = document.getElementById('home-content');
-        if (homeCont) {
-            if (database.home.length > 0) {
-                homeCont.innerHTML = '';
-                database.home.forEach((item, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.onclick = () => openModal(item.title, item.text);
-                    let imgUrl = item.cover || 'https://placeholder.com';
-                    let htmlContent = `<img src="${imgUrl}" alt="okładka"><h3>${item.title}</h3>`;
-                    if (showDeleteBtn) {
-                        htmlContent += `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('home', ${index}, ${JSON.stringify(database)})">❌ Usuń kafelek</button>`;
-                    }
-                    card.innerHTML = htmlContent;
-                    homeCont.appendChild(card);
-                });
-            } else {
-                homeCont.innerHTML = `<p class="empty-msg">Brak wiadomości na stronie głównej.</p>`;
-            }
-        }
+    }
         // 2. Renderowanie Ostrzeżeń
         const warnCont = document.getElementById('warnings-content');
         const warnEmpty = document.getElementById('warn-empty');
         if (warnCont) {
-            if (database.warnings.length > 0) {
+            warnCont.innerHTML = '';
+            if (database.warnings && database.warnings.length > 0) {
                 if (warnEmpty) warnEmpty.style.display = 'none';
-                warnCont.innerHTML = '';
                 database.warnings.forEach((item, index) => {
                     const card = document.createElement('div');
                     card.className = 'card';
                     card.onclick = () => openModal(item.title, item.text);
+                    
                     let imgUrl = item.cover || 'https://placeholder.com';
-                    let htmlContent = `<img src="${imgUrl}" alt="okładka"><h3>${item.title}</h3>`;
+                    
+                    const imgNode = document.createElement('img');
+                    imgNode.src = imgUrl;
+                    imgNode.alt = "okładka";
+                    
+                    const titleNode = document.createElement('h3');
+                    titleNode.innerText = item.title;
+                    
+                    card.appendChild(imgNode);
+                    card.appendChild(titleNode);
+                    
                     if (showDeleteBtn) {
-                        htmlContent += `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('warnings', ${index}, ${JSON.stringify(database)})">❌ Usuń ostrzeżenie</button>`;
+                        const btn = document.createElement('button');
+                        btn.className = 'delete-btn';
+                        btn.innerText = '❌ Usuń ostrzeżenie';
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            deleteItem('warnings', index);
+                        };
+                        card.appendChild(btn);
                     }
-                    card.innerHTML = htmlContent;
                     warnCont.appendChild(card);
                 });
             } else {
-                warnCont.innerHTML = '';
                 if (warnEmpty) warnEmpty.style.display = 'block';
             }
         }
@@ -130,78 +165,59 @@ function loadStoredData() {
         const progCont = document.getElementById('programs-content');
         const progEmpty = document.getElementById('prog-empty');
         if (progCont) {
-            if (database.programs.length > 0) {
+            progCont.innerHTML = '';
+            if (database.programs && database.programs.length > 0) {
                 if (progEmpty) progEmpty.style.display = 'none';
-                progCont.innerHTML = database.programs.map((item, index) => `
-                    <div class="program-item">
-                        <a href="${item.fileData}" download="${item.name}" class="download-link">💾 Pobierz: ${item.name}</a>
-                        ${showDeleteBtn ? `<button class="delete-btn-inline" onclick="deleteItem('programs', ${index}, ${JSON.stringify(database)})">❌ Usuń plik</button>` : ''}
-                    </div>
-                `).join('');
+                database.programs.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'program-item';
+                    
+                    const a = document.createElement('a');
+                    a.href = item.fileData;
+                    a.download = item.name;
+                    a.className = 'download-link';
+                    a.innerText = `💾 Pobierz: ${item.name}`;
+                    
+                    div.appendChild(a);
+                    
+                    if (showDeleteBtn) {
+                        const btn = document.createElement('button');
+                        btn.className = 'delete-btn-inline';
+                        btn.innerText = '❌ Usuń plik';
+                        btn.onclick = () => deleteItem('programs', index);
+                        div.appendChild(btn);
+                    }
+                    progCont.appendChild(div);
+                });
             } else {
-                progCont.innerHTML = '';
                 if (progEmpty) progEmpty.style.display = 'block';
             }
         }
-    })
-    .catch(error => console.error("Błąd pobierania danych z chmury:", error));
-}
-
-// Zapisywanie zaktualizowanych danych z powrotem do chmury
-function saveToCloud(updatedDatabase) {
-    fetch(CLOUD_URL, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Master-Key': MASTER_KEY
-        },
-        body: JSON.stringify(updatedDatabase)
-    })
-    .then(() => loadStoredData())
-    .catch(error => console.error("Błąd zapisu danych w chmurze:", error));
 }
 
 // Funkcja usuwająca wybrany wpis
-function deleteItem(category, index, currentDatabase) {
+function deleteItem(category, index) {
     if (confirm("Czy na pewno chcesz bezpowrotnie usunąć ten element?")) {
-        currentDatabase[category].splice(index, 1);
-        saveToCloud(currentDatabase);
+        database[category].splice(index, 1);
+        saveData();
     }
-}
-
-// Pobieranie aktualnego stanu chmury przed dodaniem nowej zawartości
-function getCloudDataAndAdd(callback) {
-    fetch(CLOUD_URL, {
-        method: 'GET',
-        headers: {
-            'X-Master-Key': MASTER_KEY
-        }
-    })
-    .then(response => response.json())
-    .then(resData => {
-        let db = resData.record || { home: [], warnings: [], programs: [] };
-        if (!db.home) db.home = [];
-        if (!db.warnings) db.warnings = [];
-        if (!db.programs) db.programs = [];
-        callback(db);
-    })
-    .catch(error => console.error("Błąd komunikacji z chmurą:", error));
 }
 
 function addHomeCard() {
     const title = document.getElementById('home-title').value;
-    const cover = document.getElementById('home-cover').value;
+    let cover = document.getElementById('home-cover').value;
     const text = document.getElementById('home-text').value;
     
+    // Oczyszczanie linku z ewentualnych ukośników ucieczki dodawanych przez komunikatory
+    cover = cover.replace(/\\/g, '');
+
     if (title && text) {
-        getCloudDataAndAdd((db) => {
-            db.home.push({ title, cover, text });
-            saveToCloud(db);
-            alert('Pomyślnie dodano kafelek na Stronę Główną!');
-            document.getElementById('home-title').value = '';
-            document.getElementById('home-cover').value = '';
-            document.getElementById('home-text').value = '';
-        });
+        if(!database.home) database.home = [];
+        database.home.push({ title, cover, text });
+        saveData();
+        document.getElementById('home-title').value = '';
+        document.getElementById('home-cover').value = '';
+        document.getElementById('home-text').value = '';
     } else {
         alert('Tytuł i treść kafelka są wymagane!');
     }
@@ -209,18 +225,18 @@ function addHomeCard() {
 
 function addWarningCard() {
     const title = document.getElementById('warn-title').value;
-    const cover = document.getElementById('warn-cover').value;
+    let cover = document.getElementById('warn-cover').value;
     const text = document.getElementById('warn-text').value;
     
+    cover = cover.replace(/\\/g, '');
+
     if (title && text) {
-        getCloudDataAndAdd((db) => {
-            db.warnings.push({ title, cover, text });
-            saveToCloud(db);
-            alert('Pomyślnie dodano nowe ostrzeżenie!');
-            document.getElementById('warn-title').value = '';
-            document.getElementById('warn-cover').value = '';
-            document.getElementById('warn-text').value = '';
-        });
+        if(!database.warnings) database.warnings = [];
+        database.warnings.push({ title, cover, text });
+        saveData();
+        document.getElementById('warn-title').value = '';
+        document.getElementById('warn-cover').value = '';
+        document.getElementById('warn-text').value = '';
     } else {
         alert('Tytuł i treść ostrzeżenia są wymagane!');
     }
@@ -234,18 +250,16 @@ function addProgramItem() {
         const file = fileInput.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-            getCloudDataAndAdd((db) => {
-                const originalName = file.name;
-                const extension = originalName.substring(originalName.lastIndexOf('.'));
-                db.programs.push({ 
-                    name: name + extension, 
-                    fileData: e.target.result 
-                });
-                saveToCloud(db);
-                alert('Plik został wgrany do systemu!');
-                document.getElementById('prog-name').value = '';
-                fileInput.value = '';
+            if(!database.programs) database.programs = [];
+            const originalName = file.name;
+            const extension = originalName.substring(originalName.lastIndexOf('.'));
+            database.programs.push({ 
+                name: name + extension, 
+                fileData: e.target.result 
             });
+            saveData();
+            document.getElementById('prog-name').value = '';
+            fileInput.value = '';
         };
         reader.readAsDataURL(file);
     } else {
