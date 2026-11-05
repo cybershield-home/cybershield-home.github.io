@@ -1,8 +1,11 @@
-// Dane dostępowe administratora
+// Dane autoryzacyjne administratora
 const ADM_USER = "Ignacyadm";
 const ADM_PASS = "Password123@$-+";
 
-// Nasłuchiwanie dopisania /admin w adresie URL
+// Globalny stan zalogowania admina
+let isAdminLoggedIn = false;
+
+// Rutowanie panelu po zmianie skrótu adresu URL (#/admin)
 window.addEventListener('hashchange', checkUrlRoute);
 window.addEventListener('load', () => {
     checkUrlRoute();
@@ -15,37 +18,49 @@ function checkUrlRoute() {
     }
 }
 
-// Nawigacja stronami
+// Obsługa przełączania podstron menu głównego
 function switchPage(pageId) {
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-    document.getElementById(`page-${pageId}`).classList.add('active');
+    
+    const targetPage = document.getElementById(`page-${pageId}`);
+    if (targetPage) {
+        targetPage.classList.add('active');
+    }
+    
     document.getElementById('navLinks').classList.remove('open');
+    // Odświeżenie widoku celem wyrenderowania ewentualnych paneli usuwania
+    loadStoredData();
 }
 
-// Menu 3 kresek
+// Rozwijanie mobilnego menu 3 kresek
 function toggleMenu() {
     document.getElementById('navLinks').classList.toggle('open');
 }
 
-// Logowanie do panelu
+// Logowanie użytkownika do panelu administracyjnego
 function handleLogin() {
     const user = document.getElementById('admin-user').value;
     const pass = document.getElementById('admin-pass').value;
+    const errorMsg = document.getElementById('login-error');
+
     if (user === ADM_USER && pass === ADM_PASS) {
+        isAdminLoggedIn = true;
+        if (errorMsg) errorMsg.style.display = 'none';
         document.getElementById('admin-login-box').style.display = 'none';
         document.getElementById('admin-dashboard').style.display = 'block';
+        loadStoredData();
     } else {
-        document.getElementById('login-error').style.display = 'block';
+        if (errorMsg) errorMsg.style.display = 'block';
     }
 }
 
-// Zakładki wewnątrz panelu admina
+// Obsługa zakładek wewnątrz panelu admina
 function switchAdminTab(tabId) {
     document.querySelectorAll('.admin-tab-content').forEach(tab => tab.classList.remove('active-tab'));
     document.getElementById(`adm-tab-${tabId}`).classList.add('active-tab');
 }
 
-// Funkcje zapisu i odczytu bazy kafelków (localStorage)
+// Zarządzanie lokalną bazą danych przeglądarki (localStorage)
 let database = JSON.parse(localStorage.getItem('site_db')) || { home: [], warnings: [], programs: [] };
 
 function saveData() {
@@ -53,49 +68,86 @@ function saveData() {
     loadStoredData();
 }
 
+// Dynamiczne renderowanie elementów na podstronach użytkowników i admina
 function loadStoredData() {
-    // Renderowanie strony głównej
-    const homeCont = document.getElementById('home-content');
-    homeCont.innerHTML = database.home.map(item => `
-        <div class="card" onclick="openModal('${item.title}', '${item.text}')">
-            <img src="${item.cover || 'https://placeholder.com'}" alt="okładka">
-            <h3>${item.title}</h3>
-        </div>
-    `).join('');
+    const showDeleteBtn = isAdminLoggedIn;
 
-    // Renderowanie ostrzeżeń
+    // 1. Renderowanie Strony Głównej
+    const homeCont = document.getElementById('home-content');
+    if (homeCont) {
+        if (database.home.length > 0) {
+            homeCont.innerHTML = database.home.map((item, index) => `
+                <div class="card" onclick="openModal('${item.title}', '${item.text}')">
+                    <img src="${item.cover || 'https://placeholder.com'}" alt="okładka">
+                    <h3>${item.title}</h3>
+                    ${showDeleteBtn ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('home', ${index})">❌ Usuń kafelek</button>` : ''}
+                </div>
+            `).join('');
+        } else {
+            homeCont.innerHTML = `<p class="empty-msg">Brak wiadomości na stronie głównej.</p>`;
+        }
+    }
+
+    // 2. Renderowanie Ostrzeżeń
     const warnCont = document.getElementById('warnings-content');
     const warnEmpty = document.getElementById('warn-empty');
-    if(database.warnings.length > 0) {
-        warnEmpty.style.display = 'none';
-        warnCont.innerHTML = database.warnings.map(item => `
-            <div class="card" onclick="openModal('${item.title}', '${item.text}')">
-                <img src="${item.cover || 'https://placeholder.com'}" alt="okładka">
-                <h3>${item.title}</h3>
-            </div>
-        `).join('');
-    } else { warnEmpty.style.display = 'block'; }
+    if (warnCont) {
+        if (database.warnings.length > 0) {
+            if (warnEmpty) warnEmpty.style.display = 'none';
+            warnCont.innerHTML = database.warnings.map((item, index) => `
+                <div class="card" onclick="openModal('${item.title}', '${item.text}')">
+                    <img src="${item.cover || 'https://placeholder.com'}" alt="okładka">
+                    <h3>${item.title}</h3>
+                    ${showDeleteBtn ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('warnings', ${index})">❌ Usuń ostrzeżenie</button>` : ''}
+                </div>
+            `).join('');
+        } else {
+            warnCont.innerHTML = '';
+            if (warnEmpty) warnEmpty.style.display = 'block';
+        }
+    }
 
-    // Renderowanie programów
+    // 3. Renderowanie Programów
     const progCont = document.getElementById('programs-content');
     const progEmpty = document.getElementById('prog-empty');
-    if(database.programs.length > 0) {
-        progEmpty.style.display = 'none';
-        progCont.innerHTML = database.programs.map(item => `
-            <div><a href="${item.fileData}" download="${item.name}" class="download-link">💾 Pobierz: ${item.name}</a></div>
-        `).join('');
-    } else { progEmpty.style.display = 'block'; }
+    if (progCont) {
+        if (database.programs.length > 0) {
+            if (progEmpty) progEmpty.style.display = 'none';
+            progCont.innerHTML = database.programs.map((item, index) => `
+                <div class="program-item">
+                    <a href="${item.fileData}" download="${item.name}" class="download-link">💾 Pobierz: ${item.name}</a>
+                    ${showDeleteBtn ? `<button class="delete-btn-inline" onclick="deleteItem('programs', ${index})">❌ Usuń plik</button>` : ''}
+                </div>
+            `).join('');
+        } else {
+            progCont.innerHTML = '';
+            if (progEmpty) progEmpty.style.display = 'block';
+        }
+    }
 }
 
-// Dodawanie elementów przez Admina
+// Funkcja usuwająca wybrany wpis
+function deleteItem(category, index) {
+    if (confirm("Czy na pewno chcesz bezpowrotnie usunąć ten element?")) {
+        database[category].splice(index, 1);
+        saveData();
+    }
+}
+
+// Formularze administratora: Dodawanie treści
 function addHomeCard() {
     const title = document.getElementById('home-title').value;
     const cover = document.getElementById('home-cover').value;
     const text = document.getElementById('home-text').value;
-    if(title && text) {
-        database.home.push({title, cover, text});
+    if (title && text) {
+        database.home.push({ title, cover, text });
         saveData();
-        alert('Dodano kafelek!');
+        alert('Pomyślnie dodano kafelek na Stronę Główną!');
+        document.getElementById('home-title').value = '';
+        document.getElementById('home-cover').value = '';
+        document.getElementById('home-text').value = '';
+    } else {
+        alert('Tytuł i treść kafelka są wymagane!');
     }
 }
 
@@ -103,32 +155,48 @@ function addWarningCard() {
     const title = document.getElementById('warn-title').value;
     const cover = document.getElementById('warn-cover').value;
     const text = document.getElementById('warn-text').value;
-    if(title && text) {
-        database.warnings.push({title, cover, text});
+    if (title && text) {
+        database.warnings.push({ title, cover, text });
         saveData();
-        alert('Dodano ostrzeżenie!');
+        alert('Pomyślnie dodano nowe ostrzeżenie!');
+        document.getElementById('warn-title').value = '';
+        document.getElementById('warn-cover').value = '';
+        document.getElementById('warn-text').value = '';
+    } else {
+        alert('Tytuł i treść ostrzeżenia są wymagane!');
     }
 }
 
 function addProgramItem() {
     const name = document.getElementById('prog-name').value;
     const fileInput = document.getElementById('prog-file');
-    if(name && fileInput.files.length > 0) {
+    if (name && fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-            database.programs.push({ name: name + (file.name.substring(file.name.lastIndexOf('.'))), fileData: e.target.result });
+            const originalName = file.name;
+            const extension = originalName.substring(originalName.lastIndexOf('.'));
+            database.programs.push({ 
+                name: name + extension, 
+                fileData: e.target.result 
+            });
             saveData();
-            alert('Wgrano plik!');
+            alert('Plik został wgrany do systemu!');
+            document.getElementById('prog-name').value = '';
+            fileInput.value = '';
         };
         reader.readAsDataURL(file);
+    } else {
+        alert('Wpisz nazwę oraz wybierz plik z dysku!');
     }
 }
 
-// Obsługa okienka Modal (wyświetlanie treści wiadomości)
+// Obsługa okna szczegółowego (Modal Popup)
 function openModal(title, text) {
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-body').innerText = text;
     document.getElementById('modal').style.display = 'flex';
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function closeModal() { 
+    document.getElementById('modal').style.display = 'none'; 
+}
