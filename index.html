@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moja Strona</title>
+    <title>cybershield</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,7 +26,7 @@
         <section id="page-home" class="page active">
             <h1>Strona główna</h1>
             <div id="home-content" class="grid-container">
-                <!-- Tutaj pojawią się kafelki -->
+                <!-- Tutaj pojawią się kafelki wiadomości -->
             </div>
         </section>
 
@@ -34,7 +34,7 @@
         <section id="page-warnings" class="page">
             <h1>Ostrzeżenia</h1>
             <div id="warnings-content" class="grid-container">
-                <!-- Tutaj pojawią się ostrzeżenia -->
+                <!-- Tutaj pojawią się kafelki ostrzeżeń -->
                 <p class="empty-msg" id="warn-empty">Nie ma ostrzeżeń</p>
             </div>
         </section>
@@ -43,22 +43,22 @@
         <section id="page-programs" class="page">
             <h1>Programy</h1>
             <div id="programs-content" class="programs-list">
-                <!-- Tutaj pojawią się programy -->
+                <!-- Tutaj pojawią się pobrane pliki programów -->
                 <p class="empty-msg" id="prog-empty">Na razie nie posiadamy programów</p>
             </div>
         </section>
 
-        <!-- PANEL ADMINISTRATORA (Ukryty domyślnie, aktywowany przez /admin w URL lub przycisk testowy) -->
+        <!-- PANEL ADMINISTRATORA -->
         <section id="page-admin" class="page">
             <h1>Panel Administratora</h1>
             
-            <!-- Logowanie -->
-            <div id="admin-login-box" class="card">
+            <!-- Okienko Logowania -->
+            <div id="admin-login-box" class="card-login">
                 <h3>Zaloguj się</h3>
                 <input type="text" id="admin-user" placeholder="Login">
                 <input type="password" id="admin-pass" placeholder="Hasło">
                 <button onclick="handleLogin()">Zaloguj</button>
-                <p id="login-error" style="color: red; display: none;">Błędne dane logowania!</p>
+                <p id="login-error" style="color: red; display: none; margin-top: 10px; font-weight: bold;">Błędne dane logowania!</p>
             </div>
 
             <!-- Treść panelu po zalogowaniu -->
@@ -73,7 +73,7 @@
                 <div id="adm-tab-adm-home" class="admin-tab-content active-tab">
                     <h3>Dodaj kafelek na Stronę Główną</h3>
                     <input type="text" id="home-title" placeholder="Tytuł wiadomości">
-                    <input type="text" id="home-cover" placeholder="Link do okładki (URL obrazka)">
+                    <input type="text" id="home-cover" placeholder="Link do okładki (Direct URL z Postimages)">
                     <textarea id="home-text" placeholder="Treść wiadomości" rows="4"></textarea>
                     <button onclick="addHomeCard()">Dodaj kafelek</button>
                 </div>
@@ -82,7 +82,7 @@
                 <div id="adm-tab-adm-warnings" class="admin-tab-content">
                     <h3>Dodaj Ostrzeżenie</h3>
                     <input type="text" id="warn-title" placeholder="Tytuł ostrzeżenia">
-                    <input type="text" id="warn-cover" placeholder="Link do okładki (URL obrazka)">
+                    <input type="text" id="warn-cover" placeholder="Link do okładki (Direct URL z Postimages)">
                     <textarea id="warn-text" placeholder="Treść ostrzeżenia" rows="4"></textarea>
                     <button onclick="addWarningCard()">Dodaj ostrzeżenie</button>
                 </div>
@@ -98,7 +98,7 @@
         </section>
     </main>
 
-    <!-- Modal do wyświetlania pełnej treści kafelka -->
+    <!-- Modal do wyświetlania pełnej treści wiadomości/ostrzeżeń -->
     <div id="modal" class="modal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -109,4 +109,4 @@
 
     <script src="script.js"></script>
 </body>
-</html> 
+</html>
