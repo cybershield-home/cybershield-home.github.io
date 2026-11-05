@@ -28,7 +28,6 @@ function switchPage(pageId) {
     }
     
     document.getElementById('navLinks').classList.remove('open');
-    // Odświeżenie widoku celem wyrenderowania ewentualnych paneli usuwania
     loadStoredData();
 }
 
@@ -76,13 +75,21 @@ function loadStoredData() {
     const homeCont = document.getElementById('home-content');
     if (homeCont) {
         if (database.home.length > 0) {
-            homeCont.innerHTML = database.home.map((item, index) => `
-                <div class="card" onclick="openModal('${item.title}', '${item.text}')">
-                    <img src="${item.cover || 'https://placeholder.com'}" alt="okładka">
-                    <h3>${item.title}</h3>
-                    ${showDeleteBtn ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('home', ${index})">❌ Usuń kafelek</button>` : ''}
-                </div>
-            `).join('');
+            homeCont.innerHTML = '';
+            database.home.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => openModal(item.title, item.text);
+                
+                let imgUrl = item.cover || 'https://placeholder.com';
+                
+                let htmlContent = `<img src="${imgUrl}" alt="okładka"><h3>${item.title}</h3>`;
+                if (showDeleteBtn) {
+                    htmlContent += `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('home', ${index})">❌ Usuń kafelek</button>`;
+                }
+                card.innerHTML = htmlContent;
+                homeCont.appendChild(card);
+            });
         } else {
             homeCont.innerHTML = `<p class="empty-msg">Brak wiadomości na stronie głównej.</p>`;
         }
@@ -94,13 +101,21 @@ function loadStoredData() {
     if (warnCont) {
         if (database.warnings.length > 0) {
             if (warnEmpty) warnEmpty.style.display = 'none';
-            warnCont.innerHTML = database.warnings.map((item, index) => `
-                <div class="card" onclick="openModal('${item.title}', '${item.text}')">
-                    <img src="${item.cover || 'https://placeholder.com'}" alt="okładka">
-                    <h3>${item.title}</h3>
-                    ${showDeleteBtn ? `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('warnings', ${index})">❌ Usuń ostrzeżenie</button>` : ''}
-                </div>
-            `).join('');
+            warnCont.innerHTML = '';
+            database.warnings.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => openModal(item.title, item.text);
+                
+                let imgUrl = item.cover || 'https://placeholder.com';
+                
+                let htmlContent = `<img src="${imgUrl}" alt="okładka"><h3>${item.title}</h3>`;
+                if (showDeleteBtn) {
+                    htmlContent += `<button class="delete-btn" onclick="event.stopPropagation(); deleteItem('warnings', ${index})">❌ Usuń ostrzeżenie</button>`;
+                }
+                card.innerHTML = htmlContent;
+                warnCont.appendChild(card);
+            });
         } else {
             warnCont.innerHTML = '';
             if (warnEmpty) warnEmpty.style.display = 'block';
