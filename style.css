@@ -1,32 +1,37 @@
 /* Style ogólne i tło strony */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Arial, sans-serif;
     background-color: #d3d3d3; /* Szara strona */
     color: #333;
 }
 
-/* Pasek górny */
+/* Pasek górny (Navbar) - Wiśniowo-czerwony */
 .navbar {
-    background-color: #87CEEB; /* Niebieski błękitny */
+    background-color: #b32424;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px;
     position: relative;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 
 .logo {
-    font-size: 35px; /* Powiększona emotka tarczy */
+    font-size: 38px; /* Powiększona tarcza */
     cursor: pointer;
     user-select: none;
+    transition: transform 0.2s;
+}
+.logo:hover {
+    transform: scale(1.1);
 }
 
 .menu-toggle {
     font-size: 30px;
     cursor: pointer;
-    display: none; /* Pokazywane na telefonach */
+    display: none;
+    color: white;
 }
 
 .nav-links {
@@ -39,82 +44,211 @@ body {
     color: #fff;
     font-weight: bold;
     font-size: 18px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    transition: color 0.2s;
+}
+.nav-links a:hover {
+    color: #ffcccc;
 }
 
-/* Zarządzanie podstronami */
-.container { padding: 20px; }
+/* Kontenery i podstrony */
+.container { 
+    padding: 20px; 
+    max-width: 1200px; 
+    margin: 0 auto; 
+}
 .page { display: none; }
 .page.active { display: block; }
 
-/* Kafelki (Grid) */
+/* Siatka kafelków */
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
     margin-top: 20px;
 }
 
+/* Kafelki wiadomości */
 .card {
     background: white;
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.12);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+.card:hover { 
+    transform: scale(1.02); 
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+.card img { 
+    width: 100%; 
+    height: 160px; 
+    object-fit: cover; 
+    background-color: #eee;
+}
+.card h3 { 
+    padding: 15px; 
+    margin: 0; 
+    font-size: 18px; 
+    flex-grow: 1;
 }
 
-.card:hover { transform: scale(1.03); }
-.card img { width: 100%; height: 150px; object-fit: cover; }
-.card h3 { padding: 10px; margin: 0; font-size: 18px; }
+/* Okienko logowania admina */
+.card-login {
+    background: white;
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
 
-/* Linki do pobierania programów */
+/* Programy (Niebieskie odnośniki) */
 .programs-list { margin-top: 20px; }
+.program-item {
+    display: flex;
+    align-items: center;
+    margin: 12px 0;
+    gap: 15px;
+}
 .download-link {
     display: inline-block;
-    background-color: #007BFF; /* Niebieski odnośnik */
+    background-color: #0056b3; /* Klasyczny niebieski odnośnik pobierania */
     color: white;
-    padding: 10px 15px;
+    padding: 10px 20px;
     text-decoration: none;
     border-radius: 5px;
-    margin: 5px 0;
     font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: background-color 0.2s;
+}
+.download-link:hover { 
+    background-color: #003d82; 
 }
 
-/* Panel admina i zakładki */
-.admin-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-.admin-tabs button, #admin-dashboard button, #admin-login-box button {
-    padding: 10px 15px;
+/* System zarządzania panelem admina */
+.admin-tabs { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 20px; 
+}
+.admin-tabs button, .admin-tab-content button, .card-login button {
+    padding: 10px 20px;
     border: none;
     background-color: #333;
     color: white;
     cursor: pointer;
     border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.2s;
 }
-.admin-tabs button:hover { background-color: #555; }
-.admin-tab-content { display: none; background: white; padding: 20px; border-radius: 5px; }
+.admin-tabs button:hover, .admin-tab-content button:hover, .card-login button:hover { 
+    background-color: #555; 
+}
+.admin-tab-content { 
+    display: none; 
+    background: white; 
+    padding: 25px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
 .admin-tab-content.active-tab { display: block; }
-.admin-tab-content input, .admin-tab-content textarea, #admin-login-box input {
-    display: block; width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;
+.admin-tab-content input, .admin-tab-content textarea, .card-login input {
+    display: block; 
+    width: 100%; 
+    margin-bottom: 15px; 
+    padding: 10px; 
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 
-/* Wiadomości o braku zawartości (z obrazków) */
-.empty-msg { font-style: italic; color: #555; font-size: 18px; }
+/* Napisy o braku zawartości */
+.empty-msg { font-style: italic; color: #666; font-size: 18px; margin-top: 15px; }
 
-/* Modal */
+/* Przyciski usuwania dla Administratora */
+.delete-btn {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    margin: 0 15px 15px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.delete-btn:hover { background-color: #c9302c; }
+
+.delete-btn-inline {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.delete-btn-inline:hover { background-color: #c9302c; }
+
+/* Okienka popup (Modal) */
 .modal {
-    display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%;
+    background-color: rgba(0,0,0,0.6); 
+    justify-content: center; 
+    align-items: center;
 }
-.modal-content { background: white; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; }
-.close-btn { position: absolute; right: 15px; top: 10px; font-size: 28px; cursor: pointer; }
+.modal-content { 
+    background: white; 
+    padding: 30px; 
+    border-radius: 8px; 
+    max-width: 600px; 
+    width: 90%; 
+    position: relative; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.close-btn { 
+    position: absolute; 
+    right: 20px; 
+    top: 15px; 
+    font-size: 32px; 
+    cursor: pointer; 
+    color: #aaa;
+}
+.close-btn:hover { color: #000; }
+#modal-body { 
+    margin-top: 15px; 
+    white-space: pre-wrap; 
+    line-height: 1.6;
+}
 
-/* Responsywność dla menu 3 kresek */
-@media (max-width: 600px) {
+/* Responsywność (Menu 3 kresek dla smartfonów) */
+@media (max-width: 768px) {
     .menu-toggle { display: block; }
     .nav-links {
-        display: none; flex-direction: column; position: absolute; top: 60px; right: 0;
-        background-color: #87CEEB; width: 100%; text-align: center; padding: 10px 0; z-index: 10;
+        display: none; 
+        flex-direction: column; 
+        position: absolute; 
+        top: 58px; 
+        right: 0;
+        background-color: #b32424; 
+        width: 100%; 
+        text-align: center; 
+        padding: 15px 0; 
+        z-index: 100;
+        box-shadow: 0 4px 5px rgba(0,0,0,0.2);
     }
     .nav-links.open { display: flex; }
+    .admin-tabs { flex-direction: column; }
+    .program-item { flex-direction: column; align-items: flex-start; gap: 5px; }
 }
