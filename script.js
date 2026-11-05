@@ -1,4 +1,3 @@
-// DARMOWA BAZA DANYCH ONLINE DLA CYBERSHIELD (W 100% AUTOMATYCZNA)
 const BIN_ID = "055683b86267962bca57";
 const CLOUD_URL = `https://npoint.io{BIN_ID}`;
 
@@ -52,6 +51,7 @@ function handleLogin() {
         document.getElementById('login-error').style.display = 'block';
     }
 }
+
 function switchAdminTab(t) {
     document.querySelectorAll('.admin-tab-content').forEach(x => x.classList.remove('active-tab'));
     document.getElementById('adm-tab-' + t).classList.add('active-tab');
@@ -98,13 +98,13 @@ function addHomeCard() {
     let cover = document.getElementById('home-cover').value;
     const text = document.getElementById('home-text').value;
     
-    cover = cover.replace(/\\/g, ''); // Czyszczenie linku z błędnych ukośników czatu
+    cover = cover.replace(/\\/g, '');
 
     if(title && text) {
         if(!db.home) db.home = [];
         db.home.push({ title, cover, text });
         saveToCloud();
-        alert('Dodano pomyślnie do chmury!');
+        alert('Dodano pomyślnie!');
         document.getElementById('home-title').value = '';
         document.getElementById('home-cover').value = '';
         document.getElementById('home-text').value = '';
@@ -122,7 +122,7 @@ function addWarningCard() {
         if(!db.warnings) db.warnings = [];
         db.warnings.push({ title, cover, text });
         saveToCloud();
-        alert('Dodano pomyślnie do chmury!');
+        alert('Dodano pomyślnie!');
         document.getElementById('warn-title').value = '';
         document.getElementById('warn-cover').value = '';
         document.getElementById('warn-text').value = '';
@@ -140,18 +140,16 @@ function addProgramItem() {
             if(!db.programs) db.programs = [];
             db.programs.push({ name: name, file: e.target.result });
             saveToCloud();
-            alert('Program wgrany pomyślnie!');
+            alert('Wgrano pomyślnie!');
             document.getElementById('prog-name').value = '';
             document.getElementById('prog-file').value = '';
         };
         r.readAsDataURL(file);
-    } else {
-        alert('Wpisz nazwę i wybierz plik!');
     }
 }
 
 function del(cat, i) {
-    if(confirm("Usunąć ten element na stałe?")) {
+    if(confirm("Usunąć na stałe?")) {
         db[cat].splice(i, 1);
         saveToCloud();
     }
