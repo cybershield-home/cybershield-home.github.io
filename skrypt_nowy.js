@@ -1,13 +1,10 @@
-// WSTAW tu Project URL oraz Publishable key z Supabase > Project Settings > API Keys.
-// Publishable key (sb_publishable_...) jest przeznaczony do strony publicznej.
-// NIGDY nie wstawiaj tutaj Secret key (sb_secret_...) ani klucza service_role.
-const SUPABASE_URL = "WSTAW_TUTAJ_PROJECT_URL";
-const SUPABASE_PUBLISHABLE_KEY = "WSTAW_TUTAJ_PUBLISHABLE_KEY";
+// Publiczne dane projektu Supabase. Klucz sb_publishable_ jest przeznaczony do użycia w przeglądarce.
+// Nigdy nie wstawiaj tutaj klucza sb_secret_ ani service_role.
+const SUPABASE_URL = "https://dyvtatbnsldermbjueqs.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_QR1Z8eHBx6xjeAvtQVHozg_7jDXzJfj";
 
 const supabaseClient =
     SUPABASE_URL.startsWith("https://") &&
-    !SUPABASE_URL.includes("WSTAW_TUTAJ") &&
-    !SUPABASE_PUBLISHABLE_KEY.includes("WSTAW_TUTAJ") &&
     window.supabase
         ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
         : null;
@@ -37,7 +34,7 @@ window.addEventListener("load", initializeSite);
 async function initializeSite() {
     checkUrlRoute();
     if (!supabaseClient) {
-        console.error("Uzupełnij SUPABASE_URL i SUPABASE_PUBLISHABLE_KEY w skrypt_nowy.js.");
+        console.error("Nie udało się uruchomić klienta Supabase.");
         renderAll();
         return;
     }
@@ -73,13 +70,13 @@ async function handleLogin() {
     const password = document.getElementById("admin-pass").value;
     const errorBox = document.getElementById("login-error");
     if (!supabaseClient) {
-        errorBox.textContent = "Najpierw trzeba skonfigurować Supabase w skrypt_nowy.js.";
+        errorBox.textContent = "Nie udało się połączyć z Supabase.";
         errorBox.style.display = "block";
         return;
     }
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
-        errorBox.textContent = "Nie udało się zalogować. Sprawdź e-mail i hasło konta Supabase.";
+        errorBox.textContent = "Nie udało się zalogować. Sprawdź konto administratora i hasło.";
         errorBox.style.display = "block";
         console.error("Błąd logowania:", error.message);
         return;
@@ -139,7 +136,6 @@ function renderAll() {
     }
 }
 
-// Obsługa kliknięć kafelków i przycisków usuwania bez wstawiania danych użytkownika do kodu JavaScript.
 document.addEventListener("click", event => {
     const deleteButton = event.target.closest("[data-delete-category]");
     if (deleteButton) {
@@ -213,7 +209,7 @@ function addProgramItem() {
         db.programs.push({ name, file: event.target.result });
         localStorage.setItem("cs_db", JSON.stringify(db));
         renderAll();
-        alert("Wgrano pomyślnie na tym urządzeniu. Programy nie są jeszcze synchronizowane z Supabase.");
+        alert("Program zapisano tylko na tym urządzeniu; ta funkcja nie jest jeszcze połączona z Supabase.");
         document.getElementById("prog-name").value = "";
         document.getElementById("prog-file").value = "";
     };
