@@ -2,17 +2,31 @@ const ADM_USER = "Ignacyadm";
 const ADM_PASS = "Password123@$-+";
 let isAdminLoggedIn = false;
 
-window.addEventListener('hashchange', () => {
-    if (window.location.hash === '#/admin') switchPage('admin');
-});
+function checkUrlRoute() {
+    const hash = window.location.hash;
+    if (hash === '#/admin') {
+        switchPage('admin');
+    } else if (hash === '#/warnings') {
+        switchPage('warnings');
+    } else if (hash === '#/programs') {
+        switchPage('programs');
+    } else {
+        switchPage('home');
+    }
+}
+
+window.addEventListener('hashchange', checkUrlRoute);
 window.addEventListener('load', () => {
-    if (window.location.hash === '#/admin') switchPage('admin');
+    checkUrlRoute();
     renderAll();
 });
 
 function switchPage(p) {
     document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
-    document.getElementById('page-' + p).classList.add('active');
+    const target = document.getElementById('page-' + p);
+    if (target) {
+        target.classList.add('active');
+    }
 }
 
 function handleLogin() {
@@ -31,7 +45,6 @@ function switchAdminTab(t) {
     document.getElementById('adm-tab-' + t).classList.add('active-tab');
 }
 
-// Czysty, lokalny i błyskawiczny zapis w przeglądarce urządzenia
 let db = JSON.parse(localStorage.getItem('cs_db')) || { home: [], warnings: [], programs: [] };
 
 function renderAll() {
@@ -75,7 +88,7 @@ function addHomeCard() {
     let cover = document.getElementById('home-cover').value;
     const text = document.getElementById('home-text').value;
     
-    cover = cover.replace(/\\/g, ''); // Naprawia ukośniki z czatu
+    cover = cover.replace(/\\/g, '');
 
     if(title && text) {
         if(!db.home) db.home = [];
