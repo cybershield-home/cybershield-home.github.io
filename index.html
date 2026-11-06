@@ -41,16 +41,18 @@
         <!-- PANEL ADMINISTRATORA -->
         <section id="page-admin" class="page">
             <h1>Panel Administratora</h1>
-            
+
             <div id="admin-login-box" class="card-login">
                 <h3>Zaloguj się</h3>
-                <input type="text" id="admin-user" placeholder="Login">
-                <input type="password" id="admin-pass" placeholder="Hasło">
+                <input type="email" id="admin-user" placeholder="Adres e-mail administratora" autocomplete="username">
+                <input type="password" id="admin-pass" placeholder="Hasło Supabase" autocomplete="current-password">
                 <button onclick="handleLogin()">Zaloguj</button>
                 <p id="login-error" style="color: red; display: none; margin-top: 10px; font-weight: bold;">Błąd logowania</p>
             </div>
 
             <div id="admin-dashboard" style="display: none;">
+                <p>Jesteś zalogowany jako administrator.</p>
+                <button onclick="handleLogout()">Wyloguj</button>
                 <div class="admin-tabs">
                     <button onclick="switchAdminTab('adm-home')">Dodaj na Główną</button>
                     <button onclick="switchAdminTab('adm-warnings')">Dodaj Ostrzeżenie</button>
@@ -92,6 +94,8 @@
         </div>
     </div>
 
+    <!-- Supabase client library; public project settings are configured in skrypt_nowy.js. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="skrypt_nowy.js"></script>
 </body>
 </html>
