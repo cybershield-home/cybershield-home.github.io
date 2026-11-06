@@ -10,18 +10,18 @@
 
     <!-- Pasek górny (Navbar) -->
     <header class="navbar">
-        <div class="logo" onclick="switchPage('home')">🛡️</div>
+        <div class="logo" onclick="window.location.hash=''; checkUrlRoute();">🛡️</div>
         <div class="menu-toggle" onclick="toggleMenu()">☰</div>
         <nav class="nav-links" id="navLinks">
-            <a href="#" onclick="switchPage('home')">Strona główna</a>
-            <a href="#" onclick="switchPage('warnings')">Ostrzeżenia</a>
-            <a href="#" onclick="switchPage('programs')">Programy</a>
+            <a href="#" onclick="window.location.hash=''; checkUrlRoute();">Strona główna</a>
+            <a href="#/warnings" onclick="setTimeout(checkUrlRoute, 50);">Ostrzeżenia</a>
+            <a href="#/programs" onclick="setTimeout(checkUrlRoute, 50);">Programy</a>
         </nav>
     </header>
 
     <main class="container">
         <!-- Strona Główna -->
-        <section id="page-home" class="page active">
+        <section id="page-home" class="page">
             <h1>Strona główna</h1>
             <div id="home-content" class="grid-container"></div>
         </section>
@@ -47,7 +47,7 @@
                 <input type="text" id="admin-user" placeholder="Login">
                 <input type="password" id="admin-pass" placeholder="Hasło">
                 <button onclick="handleLogin()">Zaloguj</button>
-                <p id="login-error" style="color: red; display: none;">Błąd logowania</p>
+                <p id="login-error" style="color: red; display: none; margin-top: 10px; font-weight: bold;">Błąd logowania</p>
             </div>
 
             <div id="admin-dashboard" style="display: none;">
@@ -92,7 +92,6 @@
         </div>
     </div>
 
-    <!-- Łączymy z plikiem skryptu -->
     <script src="skrypt_nowy.js"></script>
 </body>
 </html>
