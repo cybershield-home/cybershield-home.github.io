@@ -1,158 +1,248 @@
-const ADM_USER = "Ignacyadm";
-const ADM_PASS = "Password123@$-+";
+// Publiczne dane projektu Supabase. Klucz sb_publishable_ jest przeznaczony do użycia w przeglądarce.
+// Nigdy nie wstawiaj tutaj klucza sb_secret_ ani service_role.
+const SUPABASE_URL = "https://dyvtatbnsldermbjueqs.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_QR1Z8eHBx6xjeAvtQVHozg_7jDXzJfj";
+
+const supabaseClient =
+    SUPABASE_URL.startsWith("https://") &&
+    window.supabase
+        ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+        : null;
+
 let isAdminLoggedIn = false;
+let db = { home: [], warnings: [], programs: [] };
+
+try {
+    const savedDb = JSON.parse(localStorage.getItem("cs_db") || "{}");
+    // Zachowujemy dotychczasowe programy na tym urządzeniu; kafelki będą ładowane z bazy.
+    db.programs = Array.isArray(savedDb.programs) ? savedDb.programs : [];
+} catch (error) {
+    console.warn("Nie udało się odczytać lokalnych programów.", error);
+}
 
 function checkUrlRoute() {
     const hash = window.location.hash;
-    if (hash === '#/admin') {
-        switchPage('admin');
-    } else if (hash === '#/warnings') {
-        switchPage('warnings');
-    } else if (hash === '#/programs') {
-        switchPage('programs');
-    } else {
-        switchPage('home');
-    }
+    if (hash === "#/admin") switchPage("admin");
+    else if (hash === "#/warnings") switchPage("warnings");
+    else if (hash === "#/programs") switchPage("programs");
+    else switchPage("home");
 }
 
-window.addEventListener('hashchange', checkUrlRoute);
-window.addEventListener('load', () => {
+window.addEventListener("hashchange", checkUrlRoute);
+window.addEventListener("load", initializeSite);
+
+async function initializeSite() {
     checkUrlRoute();
-    renderAll();
-});
-
-function switchPage(p) {
-    document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
-    const target = document.getElementById('page-' + p);
-    if (target) {
-        target.classList.add('active');
-    }
-}
-
-function handleLogin() {
-    if (document.getElementById('admin-user').value === ADM_USER && document.getElementById('admin-pass').value === ADM_PASS) {
-        isAdminLoggedIn = true;
-        document.getElementById('admin-login-box').style.display = 'none';
-        document.getElementById('admin-dashboard').style.display = 'block';
+    if (!supabaseClient) {
+        console.error("Nie udało się uruchomić klienta Supabase.");
         renderAll();
-    } else {
-        document.getElementById('login-error').style.display = 'block';
+        return;
     }
+
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) console.error("Nie udało się sprawdzić sesji administratora:", error.message);
+    isAdminLoggedIn = Boolean(data && data.session);
+    updateAdminView();
+    await loadCards();
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+        isAdminLoggedIn = Boolean(session);
+        updateAdminView();
+        renderAll();
+    });
 }
 
-function switchAdminTab(t) {
-    document.querySelectorAll('.admin-tab-content').forEach(x => x.classList.remove('active-tab'));
-    document.getElementById('adm-tab-' + t).classList.add('active-tab');
+function switchPage(page) {
+    document.querySelectorAll(".page").forEach(element => element.classList.remove("active"));
+    const target = document.getElementById("page-" + page);
+    if (target) target.classList.add("active");
 }
 
-let db = JSON.parse(localStorage.getItem('cs_db')) || { home: [], warnings: [], programs: [] };
+function updateAdminView() {
+    const loginBox = document.getElementById("admin-login-box");
+    const dashboard = document.getElementById("admin-dashboard");
+    if (loginBox) loginBox.style.display = isAdminLoggedIn ? "none" : "block";
+    if (dashboard) dashboard.style.display = isAdminLoggedIn ? "block" : "none";
+}
+
+async function handleLogin() {
+    const email = document.getElementById("admin-user").value.trim();
+    const password = document.getElementById("admin-pass").value;
+    const errorBox = document.getElementById("login-error");
+    if (!supabaseClient) {
+        errorBox.textContent = "Nie udało się połączyć z Supabase.";
+        errorBox.style.display = "block";
+        return;
+    }
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+        errorBox.textContent = "Nie udało się zalogować. Sprawdź konto administratora i hasło.";
+        errorBox.style.display = "block";
+        console.error("Błąd logowania:", error.message);
+        return;
+    }
+    errorBox.style.display = "none";
+    document.getElementById("admin-pass").value = "";
+    isAdminLoggedIn = true;
+    updateAdminView();
+    renderAll();
+}
+
+async function handleLogout() {
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) console.error("Nie udało się wylogować:", error.message);
+    isAdminLoggedIn = false;
+    updateAdminView();
+    renderAll();
+}
+
+function switchAdminTab(tab) {
+    document.querySelectorAll(".admin-tab-content").forEach(element => element.classList.remove("active-tab"));
+    const target = document.getElementById("adm-tab-" + tab);
+    if (target) target.classList.add("active-tab");
+}
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+    })[character]);
+}
+
+function renderCards(containerId, cards, category) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = cards.map(card => `
+        <div class="card" data-card-category="${category}" data-card-title="${escapeHtml(card.title)}" data-card-text="${escapeHtml(card.text)}">
+            ${card.cover ? `<img src="${escapeHtml(card.cover)}" alt="">` : ""}
+            <h3>${escapeHtml(card.title)}</h3>
+            ${isAdminLoggedIn ? `<button type="button" data-delete-category="${category}" data-delete-id="${escapeHtml(card.id)}">❌ Usuń</button>` : ""}
+        </div>
+    `).join("");
+}
 
 function renderAll() {
-    const showDeleteBtn = isAdminLoggedIn;
+    renderCards("home-content", db.home, "home");
+    renderCards("warnings-content", db.warnings, "warnings");
 
-    const h = document.getElementById('home-content');
-    if (h) {
-        h.innerHTML = (db.home || []).map((x, i) => `
-            <div class="card" onclick="openModal('${x.title ? x.title.replace(/'/g, "\\'") : ''}', '${x.text ? x.text.replace(/'/g, "\\'") : ''}')">
-                <img src="${x.cover || ''}">
-                <h3>${x.title || ''}</h3>
-                ${showDeleteBtn ? `<button onclick="event.stopPropagation(); del('home', ${i})">❌ Usuń</button>` : ''}
-            </div>
-        `).join('');
-    }
-
-    const w = document.getElementById('warnings-content');
-    if (w) {
-        w.innerHTML = (db.warnings || []).map((x, i) => `
-            <div class="card" onclick="openModal('${x.title ? x.title.replace(/'/g, "\\'") : ''}', '${x.text ? x.text.replace(/'/g, "\\'") : ''}')">
-                <img src="${x.cover || ''}">
-                <h3>${x.title || ''}</h3>
-                ${showDeleteBtn ? `<button onclick="event.stopPropagation(); del('warnings', ${i})">❌ Usuń</button>` : ''}
-            </div>
-        `).join('');
-    }
-
-    const p = document.getElementById('programs-content');
-    if (p) {
-        p.innerHTML = (db.programs || []).map((x, i) => `
+    const programs = document.getElementById("programs-content");
+    if (programs) {
+        programs.innerHTML = db.programs.map((program, index) => `
             <div>
-                <a href="${x.file || '#'}" download="${x.name || 'plik'}" class="download-link">💾 Pobierz: ${x.name || 'plik'}</a>
-                ${showDeleteBtn ? `<button onclick="event.stopPropagation(); del('programs', ${i})">❌ Usuń</button>` : ''}
+                <a href="${escapeHtml(program.file || "#")}" download="${escapeHtml(program.name || "plik")}" class="download-link">💾 Pobierz: ${escapeHtml(program.name || "plik")}</a>
+                ${isAdminLoggedIn ? `<button type="button" data-delete-category="programs" data-delete-id="${index}">❌ Usuń</button>` : ""}
             </div>
-        `).join('');
+        `).join("");
     }
+}
+
+document.addEventListener("click", event => {
+    const deleteButton = event.target.closest("[data-delete-category]");
+    if (deleteButton) {
+        event.stopPropagation();
+        del(deleteButton.dataset.deleteCategory, deleteButton.dataset.deleteId);
+        return;
+    }
+    const card = event.target.closest(".card[data-card-category]");
+    if (card && !event.target.closest("button")) {
+        openModal(card.dataset.cardTitle, card.dataset.cardText);
+    }
+});
+
+async function loadCards() {
+    if (!supabaseClient) return;
+    const { data, error } = await supabaseClient
+        .from("cards")
+        .select("id, category, title, text, cover, created_at")
+        .order("created_at", { ascending: false });
+    if (error) {
+        console.error("Nie udało się pobrać kafelków z Supabase:", error.message);
+        return;
+    }
+    db.home = data.filter(card => card.category === "home");
+    db.warnings = data.filter(card => card.category === "warnings");
+    renderAll();
+}
+
+async function addCard(category, titleId, coverId, textId) {
+    if (!supabaseClient || !isAdminLoggedIn) {
+        alert("Zaloguj się na konto administratora.");
+        return;
+    }
+    const title = document.getElementById(titleId).value.trim();
+    const cover = document.getElementById(coverId).value.trim();
+    const text = document.getElementById(textId).value.trim();
+    if (!title || !text) {
+        alert("Wpisz tytuł i treść.");
+        return;
+    }
+    const { error } = await supabaseClient.from("cards").insert({ category, title, cover, text });
+    if (error) {
+        console.error("Nie udało się dodać kafelka:", error.message);
+        alert("Nie udało się dodać. Sprawdź logowanie i ustawienia dostępu w Supabase.");
+        return;
+    }
+    document.getElementById(titleId).value = "";
+    document.getElementById(coverId).value = "";
+    document.getElementById(textId).value = "";
+    await loadCards();
+    alert("Dodano pomyślnie!");
 }
 
 function addHomeCard() {
-    const title = document.getElementById('home-title').value;
-    let cover = document.getElementById('home-cover').value;
-    const text = document.getElementById('home-text').value;
-    
-    cover = cover.replace(/\\/g, '');
-
-    if(title && text) {
-        if(!db.home) db.home = [];
-        db.home.push({ title, cover, text });
-        localStorage.setItem('cs_db', JSON.stringify(db));
-        renderAll();
-        alert('Dodano pomyślnie!');
-        document.getElementById('home-title').value = '';
-        document.getElementById('home-cover').value = '';
-        document.getElementById('home-text').value = '';
-    }
+    return addCard("home", "home-title", "home-cover", "home-text");
 }
 
 function addWarningCard() {
-    const title = document.getElementById('warn-title').value;
-    let cover = document.getElementById('warn-cover').value;
-    const text = document.getElementById('warn-text').value;
-    
-    cover = cover.replace(/\\/g, '');
-
-    if(title && text) {
-        if(!db.warnings) db.warnings = [];
-        db.warnings.push({ title, cover, text });
-        localStorage.setItem('cs_db', JSON.stringify(db));
-        renderAll();
-        alert('Dodano pomyślnie!');
-        document.getElementById('warn-title').value = '';
-        document.getElementById('warn-cover').value = '';
-        document.getElementById('warn-text').value = '';
-    }
+    return addCard("warnings", "warn-title", "warn-cover", "warn-text");
 }
 
 function addProgramItem() {
-    const name = document.getElementById('prog-name').value;
-    const fileInput = document.getElementById('prog-file').files;
-    
-    if (name && fileInput && fileInput.length > 0) {
-        const file = fileInput[0];
-        const r = new FileReader();
-        r.onload = function(e) {
-            if(!db.programs) db.programs = [];
-            db.programs.push({ name: name, file: e.target.result });
-            localStorage.setItem('cs_db', JSON.stringify(db));
-            renderAll();
-            alert('Wgrano pomyślnie!');
-            document.getElementById('prog-name').value = '';
-            document.getElementById('prog-file').value = '';
-        };
-        r.readAsDataURL(file);
+    const name = document.getElementById("prog-name").value.trim();
+    const fileInput = document.getElementById("prog-file").files;
+    if (!name || !fileInput || fileInput.length === 0) {
+        alert("Wpisz nazwę i wybierz plik.");
+        return;
     }
-}
-
-function del(cat, i) {
-    if(confirm("Usunąć na stałe?")) {
-        db[cat].splice(i, 1);
-        localStorage.setItem('cs_db', JSON.stringify(db));
+    const reader = new FileReader();
+    reader.onload = event => {
+        db.programs.push({ name, file: event.target.result });
+        localStorage.setItem("cs_db", JSON.stringify(db));
         renderAll();
-    }
+        alert("Program zapisano tylko na tym urządzeniu; ta funkcja nie jest jeszcze połączona z Supabase.");
+        document.getElementById("prog-name").value = "";
+        document.getElementById("prog-file").value = "";
+    };
+    reader.readAsDataURL(fileInput[0]);
 }
 
-function openModal(t, b) {
-    document.getElementById('modal-title').innerText = t;
-    document.getElementById('modal-body').innerText = b;
-    document.getElementById('modal').style.display = 'flex';
+async function del(category, id) {
+    if (!isAdminLoggedIn || !confirm("Usunąć na stałe?")) return;
+    if (category === "programs") {
+        db.programs.splice(Number(id), 1);
+        localStorage.setItem("cs_db", JSON.stringify(db));
+        renderAll();
+        return;
+    }
+    const { error } = await supabaseClient.from("cards").delete().eq("id", id);
+    if (error) {
+        console.error("Nie udało się usunąć kafelka:", error.message);
+        alert("Nie udało się usunąć kafelka. Sprawdź ustawienia dostępu w Supabase.");
+        return;
+    }
+    await loadCards();
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
-function toggleMenu() { document.getElementById('navLinks').classList.toggle('open'); }
+
+function openModal(title, body) {
+    document.getElementById("modal-title").innerText = title;
+    document.getElementById("modal-body").innerText = body;
+    document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+function toggleMenu() {
+    document.getElementById("navLinks").classList.toggle("open");
+}
